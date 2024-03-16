@@ -1,61 +1,101 @@
 package com.example.videoauth.controller;
 
-import com.example.videoauth.config.CustomUserDetailsService;
-import com.example.videoauth.service.JwtTokenProvider;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import org.springframework.http.HttpStatus;
+import com.example.videoauth.model.ERole;
+import com.example.videoauth.model.Role;
+import com.example.videoauth.model.User;
+import com.example.videoauth.payload.request.LoginRequest;
+import com.example.videoauth.payload.request.RegisterRequest;
+import com.example.videoauth.payload.response.JwtResponse;
+import com.example.videoauth.payload.response.ResponseMessage;
+import com.example.videoauth.repository.RoleRepository;
+import com.example.videoauth.repository.UserRepository;
+import com.example.videoauth.security.jwt.JwtUtils;
+import com.example.videoauth.security.services.UserDetailsImpl;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @RestController
+@RequestMapping("/api/auth")
 public class AuthController {
+	@Autowired
+	AuthenticationManager authenticationManager;
 
-	private final AuthenticationManager authenticationManager;
-	private final JwtTokenProvider jwtTokenProvider;
-	private final CustomUserDetailsService customUserDetailsService;
+	@Autowired
+	UserRepository userRepository;
 
-	public AuthController(AuthenticationManager authenticationManager,
-						  JwtTokenProvider jwtTokenProvider,
-						  CustomUserDetailsService customUserDetailsService) {
-		this.authenticationManager = authenticationManager;
-		this.jwtTokenProvider = jwtTokenProvider;
-		this.customUserDetailsService = customUserDetailsService;
+	@Autowired
+	RoleRepository roleRepository;
+
+	@Autowired
+	PasswordEncoder encoder;
+
+	@Autowired
+	JwtUtils jwtUtils;
+
+	@PostMapping("/signin")
+	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+
+		Authentication authentication = authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+		String jwt = jwtUtils.generateJwtToken(authentication);
+
+		UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+		List<String> roles = userDetails.getAuthorities().stream()
+				.map(item -> item.getAuthority())
+				.collect(Collectors.toList());
+
+		return ResponseEntity.ok(new JwtResponse(jwt,
+				userDetails.getId(),
+				userDetails.getUsername(),
+				userDetails.getEmail(),
+				roles));
 	}
 
-	@PostMapping("/api/authenticate")
-	public ResponseEntity<?> authenticate(@RequestBody AuthRequest request) {
-		try {
-			authenticationManager.authenticate(
-					new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-			);
-			UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getUsername());
-			String token = jwtTokenProvider.generateToken(userDetails);
-			return ResponseEntity.ok(new AuthResponse(token));
-		} catch (AuthenticationException e) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+	@PostMapping("/signup")
+	public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+		if (userRepository.existsByUsername(registerRequest.getUsername())) {
+			return ResponseEntity
+					.badRequest()
+					.body(new ResponseMessage("Error: Username is already taken!"));
 		}
+
+		if (userRepository.existsByEmail(registerRequest.getEmail())) {
+			return ResponseEntity
+					.badRequest()
+					.body(new ResponseMessage("Error: Email is already in use!"));
+		}
+
+		User user = new User(registerRequest.getUsername(),
+				registerRequest.getEmail(),
+				encoder.encode(registerRequest.getPassword()));
+
+
+		Set<Role> roles = new HashSet<>();
+
+		Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+				.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+		roles.add(userRole);
+
+		user.setRoles(roles);
+		userRepository.save(user);
+
+		return ResponseEntity.ok(new ResponseMessage("User registered successfully!"));
 	}
-}
-
-@Data
-class AuthRequest {
-	private String username;
-	private String password;
-
-	// Getters and setters
-}
-
-@Data
-@AllArgsConstructor
-class AuthResponse {
-	private String token;
-
-	// Constructors, getters, and setters
 }
