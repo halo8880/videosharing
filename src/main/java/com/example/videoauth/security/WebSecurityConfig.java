@@ -3,6 +3,7 @@ package com.example.videoauth.security;
 import com.example.videoauth.security.jwt.AuthEntryPointJwt;
 import com.example.videoauth.security.jwt.AuthTokenFilter;
 import com.example.videoauth.security.services.UserDetailsServiceImpl;
+import com.example.videoauth.service.UserOnlineFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,9 @@ public class WebSecurityConfig {
 
 	@Autowired
 	private AuthEntryPointJwt unauthorizedHandler;
+
+	@Autowired
+	UserOnlineFilter userOnlineFilter;
 
 	@Bean
 	public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -65,6 +69,7 @@ public class WebSecurityConfig {
 		http.authenticationProvider(authenticationProvider());
 
 		http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+		http.addFilterAfter(userOnlineFilter, AuthTokenFilter.class);
 
 		return http.build();
 	}

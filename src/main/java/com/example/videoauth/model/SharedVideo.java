@@ -8,6 +8,8 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "shared_video")
 @Data
@@ -17,5 +19,11 @@ public class SharedVideo {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	private String videoId;
-	private Long userId;
+	private String username;
+	private LocalDateTime time;
+
+	public SharedVideo(String videoId, String username) {
+		this.videoId = videoId;
+		this.username = username;
+	}
 }
