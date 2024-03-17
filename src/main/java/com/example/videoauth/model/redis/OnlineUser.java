@@ -1,4 +1,4 @@
-package com.example.videoauth.model;
+package com.example.videoauth.model.redis;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,21 +11,21 @@ import java.util.Set;
 
 @Data
 @NoArgsConstructor
-@RedisHash("onlineUser")
+@RedisHash(value = "OnlineUser")
 public class OnlineUser {
 	@Id
 	String token;
 	LocalDateTime lastSeen;
-	Set<UserSharedVideo> sharedVideoId = new HashSet<>();
+//	Set<UserSharedVideo> sharedVideoId = new HashSet<>();
 
 	public OnlineUser(String token, LocalDateTime lastSeen) {
 		this.token = token;
 		this.lastSeen = lastSeen;
 	}
 
-	public OnlineUser(String token, LocalDateTime lastSeen, Set<UserSharedVideo> sharedVideoId) {
-		this.token = token;
-		this.lastSeen = lastSeen;
-		this.sharedVideoId = sharedVideoId;
-	}
+//	public OnlineUser(String token, LocalDateTime lastSeen, Set<UserSharedVideo> sharedVideoId) {
+//		this.token = token;
+//		this.lastSeen = lastSeen;
+//		this.sharedVideoId = sharedVideoId;
+//	}
 }

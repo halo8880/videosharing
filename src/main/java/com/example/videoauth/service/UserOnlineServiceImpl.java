@@ -1,6 +1,6 @@
 package com.example.videoauth.service;
 
-import com.example.videoauth.model.OnlineUser;
+import com.example.videoauth.model.redis.OnlineUser;
 import com.example.videoauth.repository.OnlineUserRepository;
 import com.example.videoauth.security.jwt.JwtUtils;
 import com.example.videoauth.util.TimeUtil;

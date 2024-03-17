@@ -1,6 +1,6 @@
 package com.example.videoauth.repository;
 
-import com.example.videoauth.model.OnlineUser;
+import com.example.videoauth.model.redis.OnlineUser;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
