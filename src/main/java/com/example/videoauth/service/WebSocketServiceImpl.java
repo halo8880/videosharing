@@ -4,8 +4,11 @@ import com.example.videoauth.model.redis.OnlineUser;
 import com.example.videoauth.repository.OnlineUserRepository;
 import com.example.videoauth.security.jwt.JwtUtils;
 import com.example.videoauth.util.TimeUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class WebSocketServiceImpl extends TextWebSocketHandler implements WebSocketService {
 	@Autowired
 	private JwtUtils jwtUtils;
@@ -47,13 +51,31 @@ public class WebSocketServiceImpl extends TextWebSocketHandler implements WebSoc
 	}
 
 	@Override
-	public void notifyOnlineUsers(String message) {
+	@Async
+	public void notifyUserIfOnline(String userToken, String message) {
+		onlineUserRepository.findById(userToken).ifPresent(onlineUser -> {
+			if (isUserOnline(onlineUser) && connectedUsers.containsKey(onlineUser.getToken())) {
+				WebSocketSession session = connectedUsers.get(onlineUser.getToken());
+				try {
+					session.sendMessage(new TextMessage(message));
+				} catch (IOException e) {
+					// Handle exception
+				}
+			}
+		});
+	}
 
+	@Override
+	public void notifyOnlineUsers(String message) {
+		log.info("Notifying online users, message: " + message);
+		String crrUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 		var onlineUsers = (List<OnlineUser>) onlineUserRepository.findAll();
-		Set<WebSocketSession> notifySessions = onlineUsers.stream().filter(onlineUser ->
-				isUserOnline(onlineUser) && connectedUsers.containsKey(onlineUser.getToken())
-		).map(onlineUser ->
-				connectedUsers.get(onlineUser.getToken())).collect(Collectors.toSet());
+		Set<WebSocketSession> notifySessions = onlineUsers.stream()
+				.filter(onlineUser ->
+						!crrUsername.equalsIgnoreCase(onlineUser.getUsername()) &&
+								isUserOnline(onlineUser) && connectedUsers.containsKey(onlineUser.getToken())
+				).map(onlineUser ->
+						connectedUsers.get(onlineUser.getToken())).collect(Collectors.toSet());
 		Executor executor = Executors.newFixedThreadPool(10);
 		for (WebSocketSession session : notifySessions) {
 			executor.execute(() -> {
@@ -64,6 +86,17 @@ public class WebSocketServiceImpl extends TextWebSocketHandler implements WebSoc
 				}
 			});
 		}
+	}
+
+	@Override
+	public Set<OnlineUser> getOnlineUsersNotMe() {
+		String crrUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+		return onlineUserRepository.findAll().
+				stream()
+				.filter(onlineUser ->
+						!crrUsername.equalsIgnoreCase(onlineUser.getUsername()) &&
+								isUserOnline(onlineUser) && connectedUsers.containsKey(onlineUser.getToken())
+				).collect(Collectors.toSet());
 	}
 
 	private boolean isUserOnline(OnlineUser onlineUser) {

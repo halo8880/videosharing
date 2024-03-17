@@ -28,10 +28,17 @@ public class Runner implements CommandLineRunner {
 		user.setUsername("viet");
 		user.setPassword(passwordEncoder.encode("vietpassword"));
 
+		User user2 = new User();
+		user2.setEmail("viet2@gmail.com");
+		user2.setUsername("viet2");
+		user2.setPassword(passwordEncoder.encode("vietpassword"));
+
 		Role role = new Role();
 		role.setName(ERole.ROLE_USER);
 		roleRepository.save(role);
 		user.setRoles(Set.of(role));
+		user2.setRoles(Set.of(role));
 		userRepository.save(user);
+		userRepository.save(user2);
 	}
 }

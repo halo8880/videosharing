@@ -1,4 +1,4 @@
-package com.example.videoauth.model.redis;
+package com.example.videoauth.model;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,7 +9,6 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-@RedisHash("UserSharedVideo")
 @EqualsAndHashCode
 @NoArgsConstructor
 public class UserSharedVideo implements Serializable {

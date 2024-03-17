@@ -15,12 +15,14 @@ import java.util.Set;
 public class OnlineUser {
 	@Id
 	String token;
+	String username;
 	LocalDateTime lastSeen;
 //	Set<UserSharedVideo> sharedVideoId = new HashSet<>();
 
-	public OnlineUser(String token, LocalDateTime lastSeen) {
+	public OnlineUser(String token, String username, LocalDateTime lastSeen) {
 		this.token = token;
 		this.lastSeen = lastSeen;
+		this.username = username;
 	}
 
 //	public OnlineUser(String token, LocalDateTime lastSeen, Set<UserSharedVideo> sharedVideoId) {

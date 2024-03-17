@@ -29,7 +29,14 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 		try {
-			String jwt = jwtUtils.parseJwt(request);
+			String jwt;
+			if (request.getRequestURI().equalsIgnoreCase("/gs-guide-websocket")) {
+				jwt = request.getParameter("token");
+				filterChain.doFilter(request, response);
+				return;
+			} else {
+				jwt = jwtUtils.parseJwt(request);
+			}
 			if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
 				String username = jwtUtils.getUserNameFromJwtToken(jwt);
 

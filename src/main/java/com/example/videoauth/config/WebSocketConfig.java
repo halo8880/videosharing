@@ -13,20 +13,36 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker
-@EnableWebSocketSecurity
+//@EnableWebSocketSecurity
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-	@Bean
-	AuthorizationManager<Message<?>> authorizationManager(MessageMatcherDelegatingAuthorizationManager.Builder messages) {
-		messages.simpDestMatchers("/ws/**").authenticated();
-//				.simpDestMatchers("/admin/**").hasRole("ADMIN")
-//				.anyMessage().authenticated();
-		return messages.build();
-	}
+
+//	@Override
+//	public void configureMessageBroker(MessageBrokerRegistry config) {
+//		config.enableSimpleBroker("/topic");
+//		config.setApplicationDestinationPrefixes("/app");
+//	}
+//
+//	@Override
+//	public void registerStompEndpoints(StompEndpointRegistry registry) {
+//		registry.addEndpoint("/gs-guide-websocket");
+//	}
+
+
+
+
+//	@Bean
+//	AuthorizationManager<Message<?>> authorizationManager(MessageMatcherDelegatingAuthorizationManager.Builder messages) {
+//		messages.simpDestMatchers("/ws/**").permitAll();
+////				.simpDestMatchers("/admin/**").hasRole("ADMIN")
+////				.anyMessage().authenticated();
+//		return messages.build();
+//	}
 
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
-		registry.addEndpoint("/ws").setAllowedOrigins("*").withSockJS();
+//		registry.addEndpoint("/ws").withSockJS();
+		registry.addEndpoint("/gs-guide-websocket").withSockJS();
 	}
 
 	@Override

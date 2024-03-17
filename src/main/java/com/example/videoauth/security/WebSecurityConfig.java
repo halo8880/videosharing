@@ -22,13 +22,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class WebSecurityConfig {
 	@Autowired
-	UserDetailsServiceImpl userDetailsService;
+	private UserDetailsServiceImpl userDetailsService;
 
 	@Autowired
 	private AuthEntryPointJwt unauthorizedHandler;
 
 	@Autowired
-	UserOnlineFilter userOnlineFilter;
+	private UserOnlineFilter userOnlineFilter;
 
 	@Bean
 	public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -61,9 +61,11 @@ public class WebSecurityConfig {
 				.exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth ->
-						auth.requestMatchers("/api/auth/**").permitAll()
-//								.requestMatchers("/api/test/**").permitAll()
-								.anyRequest().authenticated()
+								auth
+										.requestMatchers("/api/v1/auth/**").permitAll()
+//										.requestMatchers("/ws").permitAll()
+										.anyRequest().permitAll()
+//										.anyRequest().authenticated()
 				);
 
 		http.authenticationProvider(authenticationProvider());
