@@ -17,11 +17,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
-	@Autowired
 	private JwtUtils jwtUtils;
-
-	@Autowired
 	private UserDetailsServiceImpl userDetailsService;
+
+	public AuthTokenFilter(JwtUtils jwtUtils, UserDetailsServiceImpl userDetailsService) {
+		this.jwtUtils = jwtUtils;
+		this.userDetailsService = userDetailsService;
+	}
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
@@ -30,7 +32,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 		try {
 			String jwt;
-			if (request.getRequestURI().equalsIgnoreCase("/gs-guide-websocket")) {
+			if (request.getRequestURI().startsWith("/ws")) {
 				jwt = request.getParameter("token");
 				filterChain.doFilter(request, response);
 				return;

@@ -10,7 +10,5 @@ public interface WebSocketService {
 	@Async
 	void notifyUserIfOnline(String userToken, String message);
 
-	void notifyOnlineUsers(String message);
-
 	Set<OnlineUser> getOnlineUsersNotMe();
 }

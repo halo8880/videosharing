@@ -20,7 +20,7 @@ public class UserOnlineServiceImpl implements UserOnlineService {
 
 	@Override
 	public void updateLastSeen(HttpServletRequest request) {
-		if (request.getRequestURI().equalsIgnoreCase("/ws")) {
+		if (request.getRequestURI().startsWith("/ws")) {
 			return;
 		}
 		var authen = SecurityContextHolder.getContext().getAuthentication();

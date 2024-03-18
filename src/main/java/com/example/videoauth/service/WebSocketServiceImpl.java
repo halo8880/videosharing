@@ -2,90 +2,38 @@ package com.example.videoauth.service;
 
 import com.example.videoauth.model.redis.OnlineUser;
 import com.example.videoauth.repository.OnlineUserRepository;
-import com.example.videoauth.security.jwt.JwtUtils;
 import com.example.videoauth.util.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class WebSocketServiceImpl extends TextWebSocketHandler implements WebSocketService {
-	@Autowired
-	private JwtUtils jwtUtils;
+public class WebSocketServiceImpl implements WebSocketService {
 	@Autowired
 	private OnlineUserRepository onlineUserRepository;
 	@Autowired
-	private UserDetailsService userDetailsService;
+	private SimpMessagingTemplate simpMessagingTemplate;
 	@Value("${app.lastSeenThresholdInSeconds}")
 	private Long lastSeenThreshold;
-
-	private Map<String, WebSocketSession> connectedUsers = new ConcurrentHashMap<>();
-
-	@Override
-	public void afterConnectionEstablished(WebSocketSession session) {
-		String jwt = extractTokenFromHeader(session.getHandshakeHeaders().get("Authorization").get(0));
-		if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-			String username = jwtUtils.getUserNameFromJwtToken(jwt);
-			UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-			connectedUsers.put(jwt, session);
-		}
-	}
 
 	@Override
 	@Async
 	public void notifyUserIfOnline(String userToken, String message) {
 		onlineUserRepository.findById(userToken).ifPresent(onlineUser -> {
-			if (isUserOnline(onlineUser) && connectedUsers.containsKey(onlineUser.getToken())) {
-				WebSocketSession session = connectedUsers.get(onlineUser.getToken());
-				try {
-					session.sendMessage(new TextMessage(message));
-				} catch (IOException e) {
-					// Handle exception
-				}
+			if (isUserOnline(onlineUser)) {
+				log.info("notifyUserIfOnline Notifying user: {}", onlineUser.getToken());
+				simpMessagingTemplate.convertAndSend("/topic/notify/" + onlineUser.getToken(), message);
 			}
 		});
-	}
-
-	@Override
-	public void notifyOnlineUsers(String message) {
-		log.info("Notifying online users, message: " + message);
-		String crrUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-		var onlineUsers = (List<OnlineUser>) onlineUserRepository.findAll();
-		Set<WebSocketSession> notifySessions = onlineUsers.stream()
-				.filter(onlineUser ->
-						!crrUsername.equalsIgnoreCase(onlineUser.getUsername()) &&
-								isUserOnline(onlineUser) && connectedUsers.containsKey(onlineUser.getToken())
-				).map(onlineUser ->
-						connectedUsers.get(onlineUser.getToken())).collect(Collectors.toSet());
-		Executor executor = Executors.newFixedThreadPool(10);
-		for (WebSocketSession session : notifySessions) {
-			executor.execute(() -> {
-				try {
-					session.sendMessage(new TextMessage(message));
-				} catch (IOException e) {
-					// Handle exception
-				}
-			});
-		}
 	}
 
 	@Override
@@ -95,18 +43,11 @@ public class WebSocketServiceImpl extends TextWebSocketHandler implements WebSoc
 				stream()
 				.filter(onlineUser ->
 						!crrUsername.equalsIgnoreCase(onlineUser.getUsername()) &&
-								isUserOnline(onlineUser) && connectedUsers.containsKey(onlineUser.getToken())
+								isUserOnline(onlineUser)
 				).collect(Collectors.toSet());
 	}
 
 	private boolean isUserOnline(OnlineUser onlineUser) {
-		return Duration.between(onlineUser.getLastSeen(), TimeUtil.now()).getSeconds() > lastSeenThreshold;
-	}
-
-	private String extractTokenFromHeader(String header) {
-		if (header != null && header.startsWith("Bearer ")) {
-			return header.substring(7);
-		}
-		return null;
+		return Duration.between(onlineUser.getLastSeen(), TimeUtil.now()).getSeconds() <= lastSeenThreshold;
 	}
 }

@@ -13,6 +13,7 @@ import com.example.videoauth.security.jwt.JwtUtils;
 import com.example.videoauth.security.services.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -49,11 +50,28 @@ public class AuthController {
 
 	@PostMapping("/signin")
 	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+		Authentication authentication;
+		try {
+			authentication = authenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+		} catch (Exception e) {
+			RegisterRequest registerRequest = new RegisterRequest();
+			registerRequest.setUsername(loginRequest.getUsername());
+			registerRequest.setPassword(loginRequest.getPassword());
+			ResponseEntity re = registerUser(registerRequest);
+			if (re.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(200))) {
+				authentication = authenticationManager.authenticate(
+						new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+			} else {
+				return re;
+			}
+		}
 
-		Authentication authentication = authenticationManager.authenticate(
-				new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-		SecurityContextHolder.getContext().setAuthentication(authentication);
+		SecurityContextHolder.getContext().
+
+				setAuthentication(authentication);
+
 		String jwt = jwtUtils.generateJwtToken(authentication);
 
 		UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -61,7 +79,9 @@ public class AuthController {
 				.map(item -> item.getAuthority())
 				.collect(Collectors.toList());
 
-		return ResponseEntity.ok(new JwtResponse(jwt,
+		return ResponseEntity.ok(new
+
+				JwtResponse(jwt,
 				userDetails.getId(),
 				userDetails.getUsername(),
 				userDetails.getEmail(),
@@ -76,11 +96,11 @@ public class AuthController {
 					.body(new ResponseMessage("Error: Username is already taken!"));
 		}
 
-		if (userRepository.existsByEmail(registerRequest.getEmail())) {
-			return ResponseEntity
-					.badRequest()
-					.body(new ResponseMessage("Error: Email is already in use!"));
-		}
+//		if (userRepository.existsByEmail(registerRequest.getEmail())) {
+//			return ResponseEntity
+//					.badRequest()
+//					.body(new ResponseMessage("Error: Email is already in use!"));
+//		}
 
 		User user = new User(registerRequest.getUsername(),
 				registerRequest.getEmail(),
