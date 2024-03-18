@@ -64,11 +64,12 @@ public class WebSecurityConfig {
 				.exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth ->
-								auth
-										.requestMatchers("/api/v1/auth/**").permitAll()
-										.requestMatchers("/static/**").permitAll()
-										.requestMatchers("/ws**").permitAll()
-										.anyRequest().authenticated()
+						auth
+								.requestMatchers("/api/v1/auth/**").permitAll()
+								.requestMatchers("/static/**").permitAll()
+								.requestMatchers("/ws**").permitAll()
+								.requestMatchers("/ws/info").permitAll()
+								.anyRequest().authenticated()
 				);
 
 		http.authenticationProvider(authenticationProvider());

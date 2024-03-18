@@ -18,12 +18,16 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class WebSocketServiceImpl implements WebSocketService {
-	@Autowired
 	private OnlineUserRepository onlineUserRepository;
-	@Autowired
 	private SimpMessagingTemplate simpMessagingTemplate;
-	@Value("${app.lastSeenThresholdInSeconds}")
 	private Long lastSeenThreshold;
+
+	public WebSocketServiceImpl(OnlineUserRepository onlineUserRepository, SimpMessagingTemplate simpMessagingTemplate,
+								@Value("${app.lastSeenThresholdInSeconds}") Long lastSeenThreshold) {
+		this.onlineUserRepository = onlineUserRepository;
+		this.simpMessagingTemplate = simpMessagingTemplate;
+		this.lastSeenThreshold = lastSeenThreshold;
+	}
 
 	@Override
 	@Async

@@ -37,8 +37,8 @@ services:
       dockerfile: Dockerfile-frontend
     ports:
       - "3000:80"
-#    networks:
-#      - default
+    networks:
+      - default1
 networks:
   default1:
     name: default1
