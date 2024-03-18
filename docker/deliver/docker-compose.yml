@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:11
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+    ports:
+      - "5432:5432"
+    networks:
+      - default1
+  redis:
+    container_name: redis
+    hostname: redis
+    image: redis:7-alpine
+    command: [ "redis-server", "/usr/local/redis.conf" ]
+    volumes:
+      - /redis.conf:/usr/local/redis.conf
+    ports:
+      - "6379:6379"
+    networks:
+      - default1
+  backend:
+    links:
+      - redis
+    build:
+      dockerfile: Dockerfile-be
+    ports:
+      - "8081:8081"
+    networks:
+      - default1
+  frontend:
+    container_name: frontend
+    build:
+      dockerfile: Dockerfile-frontend
+    ports:
+      - "3000:80"
+#    networks:
+#      - default
+networks:
+  default1:
+    name: default1

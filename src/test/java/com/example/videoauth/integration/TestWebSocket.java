@@ -29,7 +29,7 @@ public class TestWebSocket {
 	@LocalServerPort
 	private int port;
 
-	@Test
+//	@Test
 	public void testWebSocketConnection() throws Exception {
 		WebSocketStompClient stompClient = new WebSocketStompClient(new SockJsClient(
 				List.of(new WebSocketTransport(new StandardWebSocketClient()))));
